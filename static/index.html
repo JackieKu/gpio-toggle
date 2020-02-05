@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Remote Power Button</title>
+<script src="https://unpkg.com/vue"></script>
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<!-- <script src="http://livejs.com/live.js"></script> -->
+<style>
+* {
+    font-family: sans-serif;
+}
+
+[v-cloak] {
+    display: none;
+}
+
+html, body, #button {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+}
+
+#button {
+    background-color: red;
+}
+
+#button.activated {
+    background-color: greenyellow;
+}
+
+</style>
+</head>
+<body>
+<div id="button" v-bind:class="{activated: activated}" @click="toggle" v-cloak></div>
+<script>
+let app = new Vue({
+    el: '#button',
+    data: {
+        activated: false
+    },
+    mounted: function() {
+        this.sync();
+    },
+    methods: {
+        sync: function() {
+            let app = this;
+            axios.get('/line')
+                .then(res => app.activated = (res.data == 1))
+                ;
+        },
+        toggle: function() {
+            let app = this;
+            axios.put('/line/' + (app.activated ? '0' : '1'))
+                .then(() => app.sync())
+                ;
+        }
+    }
+});
+</script>
+</body>
+</html>
