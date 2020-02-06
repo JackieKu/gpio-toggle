@@ -6,11 +6,20 @@ use actix_web::{middleware, App, HttpRequest, HttpResponse, HttpServer};
 
 extern crate gpio_cdev;
 
-use gpio_cdev::*;
-
 use once_cell::sync::Lazy;
 
+use quicli::prelude::*;
+use structopt::StructOpt;
+
 static CONSUMER: &str = "gpio-toggle-web";
+
+#[derive(Debug, StructOpt)]
+struct Cli {
+    /// The gpiochip device (e.g. /dev/gpiochip0)
+    chip: String,
+    /// The offset of the GPIO line for the provided chip
+    line: u32,
+}
 
 trait Port {
     fn get(&self) -> bool;
@@ -31,17 +40,17 @@ impl Port for MockPort {
 }
 
 struct GPIO {
-    handle: LineHandle,
+    handle: gpio_cdev::LineHandle,
 }
 impl GPIO {
-    fn new(chip: String, line: u32) -> Result<GPIO, errors::Error>  {
-        let line = Chip::new(chip)?
+    fn new(chip: String, line: u32) -> Result<GPIO, gpio_cdev::errors::Error>  {
+        let line = gpio_cdev::Chip::new(chip)?
             .get_line(line)?;
-        let old_value = line.request(LineRequestFlags::INPUT, 0, CONSUMER)?
+        let old_value = line.request(gpio_cdev::LineRequestFlags::INPUT, 0, CONSUMER)?
             .get_value()?;
 
         Ok(GPIO {
-            handle: line.request(LineRequestFlags::OUTPUT, old_value, CONSUMER)?
+            handle: line.request(gpio_cdev::LineRequestFlags::OUTPUT, old_value, CONSUMER)?
         })
     }
 }
@@ -58,8 +67,10 @@ impl Port for GPIO {
 //static mut PORT: Lazy<MockPort> = Lazy::new(|| {
 //    MockPort {state: false}
 //});
+static mut ARGS: Option<Cli> = None;
 static mut PORT: Lazy<GPIO> = Lazy::new(|| {
-    GPIO::new(String::from("/dev/gpiochip0"), 0).unwrap()
+    let args = unsafe { ARGS.as_ref().unwrap() };
+    GPIO::new(args.chip.clone(), args.line).unwrap()
 });
 
 fn unsafe_port() -> &'static mut Lazy<GPIO> {
@@ -86,6 +97,10 @@ async fn put_line(req: HttpRequest) -> HttpResponse {
 
 #[actix_rt::main]
 async fn main() -> std::io::Result<()> {
+    unsafe {
+        ARGS = Some(Cli::from_args());
+    }
+
     ::std::env::set_var("RUST_LOG", "actix_server=info,actix_web=info");
     env_logger::init();
 
