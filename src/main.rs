@@ -99,9 +99,11 @@ mod m {
     }
 }
 
+use m::*;
+
 #[get("/line")]
 async fn get_line(_req: HttpRequest) -> &'static str {  
-    if m::unsafe_port().get() { "1" } else { "0" }
+    if unsafe_port().get() { "1" } else { "0" }
 }
 
 #[put("/line/{on}")]
@@ -112,7 +114,7 @@ async fn put_line(req: HttpRequest) -> HttpResponse {
         _ => return HttpResponse::BadRequest().finish()
     };
 
-    m::unsafe_port().set(new_state);
+    unsafe_port().set(new_state);
 
     HttpResponse::Ok().finish()
 }
@@ -120,7 +122,7 @@ async fn put_line(req: HttpRequest) -> HttpResponse {
 #[actix_rt::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Cli::from_args();
-    m::init_port(&args)?;
+    init_port(&args)?;
 
     std::env::set_var("RUST_LOG", "actix_server=info,actix_web=info");
     env_logger::init();
