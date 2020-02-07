@@ -1,4 +1,4 @@
-extern crate gpio_cdev;
+use gpio_cdev;
 
 use once_cell::sync::OnceCell;
 
