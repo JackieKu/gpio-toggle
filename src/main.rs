@@ -122,7 +122,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Cli::from_args();
     m::init_port(&args)?;
 
-    ::std::env::set_var("RUST_LOG", "actix_server=info,actix_web=info");
+    std::env::set_var("RUST_LOG", "actix_server=info,actix_web=info");
     env_logger::init();
 
     let server = HttpServer::new(|| {
