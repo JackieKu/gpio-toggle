@@ -6,7 +6,7 @@ use actix_web::{middleware, App, HttpRequest, HttpResponse, HttpServer};
 
 extern crate gpio_cdev;
 
-use once_cell::sync::{OnceCell};
+use once_cell::sync::*;
 
 use structopt::StructOpt;
 
@@ -64,13 +64,38 @@ impl Port for GPIO {
     }
 }
 
-//static mut PORT: Lazy<MockPort> = Lazy::new(|| {
-//    MockPort {state: false}
-//});
+#[cfg(mock)]
+static mut PORT: Lazy<MockPort> = Lazy::new(|| {
+    MockPort {state: false}
+});
+
+#[cfg(mock)]
+fn unsafe_port() -> &'static mut MockPort {
+    unsafe { &mut PORT }
+}
+
+#[cfg(mock)]
+fn init_port() -> std::io::Result<()> {
+    Ok(())
+}
+
+#[cfg(not(mock))]
 static mut PORT: OnceCell<GPIO> = OnceCell::new();
 
+#[cfg(not(mock))]
 fn unsafe_port() -> &'static mut GPIO {
     unsafe { PORT.get_mut().unwrap() }
+}
+
+#[cfg(not(mock))]
+fn init_port() -> Result<(), gpio_cdev::errors::Error> {
+    let gpio = {
+        let args = Cli::from_args();
+        GPIO::new(args.chip, args.line)?
+    };
+    unsafe { PORT.set(gpio).expect("BUG"); }
+
+    Ok(())
 }
 
 #[get("/line")]
@@ -93,11 +118,7 @@ async fn put_line(req: HttpRequest) -> HttpResponse {
 
 #[actix_rt::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let gpio = {
-        let args = Cli::from_args();
-        GPIO::new(args.chip, args.line)?
-    };
-    unsafe { PORT.set(gpio).expect("BUG"); }
+    init_port()?;
 
     ::std::env::set_var("RUST_LOG", "actix_server=info,actix_web=info");
     env_logger::init();
