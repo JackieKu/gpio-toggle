@@ -32,8 +32,8 @@ mod m {
         handle: gpio_cdev::LineHandle,
     }
     impl GPIO {
-        fn new(chip: &String, line: u32) -> Result<GPIO, gpio_cdev::errors::Error>  {
-            let line = gpio_cdev::Chip::new(chip)?
+        fn new<S: AsRef<str>>(chip: S, line: u32) -> Result<GPIO, gpio_cdev::errors::Error>  {
+            let line = gpio_cdev::Chip::new(chip.as_ref())?
                 .get_line(line)?;
             let old_value = line.request(gpio_cdev::LineRequestFlags::INPUT, 0, CONSUMER)?
                 .get_value()?;
