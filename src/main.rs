@@ -4,22 +4,28 @@ extern crate actix_web;
 use actix_files;
 use actix_web::{middleware, App, HttpRequest, HttpResponse, HttpServer};
 
+use structopt::StructOpt;
+
+#[derive(Debug, StructOpt)]
+pub struct Cli {
+    /// The gpiochip device (e.g. /dev/gpiochip0)
+    #[cfg(not(mock))]
+    chip: String,
+    /// The offset of the GPIO line for the provided chip
+    #[cfg(not(mock))]
+    line: u32,
+    #[structopt(long = "listen", short = "l", default_value = "127.0.0.1:2000")]
+    /// The address to listen on (e.g. 127.0.0.1:2000, /path/unix.socket)
+    listen: String,
+}
+
 #[cfg(not(mock))]
 mod m {
     extern crate gpio_cdev;
 
     use once_cell::sync::OnceCell;
-    use structopt::StructOpt;
 
     static CONSUMER: &str = "gpio-toggle-web";
-
-    #[derive(Debug, StructOpt)]
-    struct Cli {
-        /// The gpiochip device (e.g. /dev/gpiochip0)
-        chip: String,
-        /// The offset of the GPIO line for the provided chip
-        line: u32,
-    }
 
     #[derive(Debug)]
     pub struct GPIO {
@@ -52,8 +58,7 @@ mod m {
         unsafe { PORT.get_mut().unwrap() }
     }
 
-    pub fn init_port() -> Result<(), gpio_cdev::errors::Error> {
-        let args = Cli::from_args();
+    pub fn init_port(args: &crate::Cli) -> Result<(), gpio_cdev::errors::Error> {
         let gpio = GPIO::new(&args.chip, args.line)?;
         println!("Driving {} line {}", args.chip, args.line);
         unsafe { PORT.set(gpio).expect("BUG"); }
@@ -88,7 +93,7 @@ mod m {
         unsafe { &mut PORT }
     }
 
-    pub fn init_port() -> std::io::Result<()> {
+    pub fn init_port(_args: &crate::Cli) -> std::io::Result<()> {
         println!("Mock implementation!");
         Ok(())
     }
@@ -114,20 +119,24 @@ async fn put_line(req: HttpRequest) -> HttpResponse {
 
 #[actix_rt::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    m::init_port()?;
+    let args = Cli::from_args();
+    m::init_port(&args)?;
 
     ::std::env::set_var("RUST_LOG", "actix_server=info,actix_web=info");
     env_logger::init();
 
-    HttpServer::new(|| {
+    let server = HttpServer::new(|| {
         App::new()
             .wrap(middleware::Logger::default())
             .service(get_line)
             .service(put_line)
             .service(actix_files::Files::new("/", "static").index_file("index.html"))
-    })
-    //.bind_uds("/tmp/gpio-toggle.socket")?
-    .bind("0.0.0.0:2000")?
+    });
+    if args.listen.starts_with('/') {
+        server.bind_uds(args.listen)?
+    } else {
+        server.bind(args.listen)?
+    }
     .run()
     .await?;
 
