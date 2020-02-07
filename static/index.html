@@ -15,21 +15,31 @@
     display: none;
 }
 
-html, body, #button {
+html, body {
     margin: 0;
     padding: 0;
     width: 100%;
     height: 100%;
 }
 
+body {
+    display: flex;
+    align-items: center;
+}
+
 #button {
+    margin-left: auto;
+    margin-right: auto;
+    width: 60vmin;
+    height: 60vmin;
     background-color: red;
+    border: 2px solid grey;
+    border-radius: 50%;
 }
 
 #button.activated {
     background-color: greenyellow;
 }
-
 </style>
 </head>
 <body>
