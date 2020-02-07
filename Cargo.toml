@@ -1,7 +1,7 @@
 [package]
 name = "gpio-toggle"
 version = "1.0.0"
-authors = ["Your Name <you@example.com>"]
+authors = ["Kai-Chieh Ku <kjackie@gmail.com>"]
 edition = "2018"
 
 [dependencies]
