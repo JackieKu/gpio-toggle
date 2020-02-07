@@ -6,9 +6,8 @@ use actix_web::{middleware, App, HttpRequest, HttpResponse, HttpServer};
 
 extern crate gpio_cdev;
 
-use once_cell::sync::Lazy;
+use once_cell::sync::{OnceCell};
 
-use quicli::prelude::*;
 use structopt::StructOpt;
 
 static CONSUMER: &str = "gpio-toggle-web";
@@ -39,6 +38,7 @@ impl Port for MockPort {
     }
 }
 
+#[derive(Debug)]
 struct GPIO {
     handle: gpio_cdev::LineHandle,
 }
@@ -67,14 +67,10 @@ impl Port for GPIO {
 //static mut PORT: Lazy<MockPort> = Lazy::new(|| {
 //    MockPort {state: false}
 //});
-static mut ARGS: Option<Cli> = None;
-static mut PORT: Lazy<GPIO> = Lazy::new(|| {
-    let args = unsafe { ARGS.as_ref().unwrap() };
-    GPIO::new(args.chip.clone(), args.line).unwrap()
-});
+static mut PORT: OnceCell<GPIO> = OnceCell::new();
 
-fn unsafe_port() -> &'static mut Lazy<GPIO> {
-    unsafe { &mut PORT }
+fn unsafe_port() -> &'static mut GPIO {
+    unsafe { PORT.get_mut().unwrap() }
 }
 
 #[get("/line")]
@@ -96,10 +92,12 @@ async fn put_line(req: HttpRequest) -> HttpResponse {
 }
 
 #[actix_rt::main]
-async fn main() -> std::io::Result<()> {
-    unsafe {
-        ARGS = Some(Cli::from_args());
-    }
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let gpio = {
+        let args = Cli::from_args();
+        GPIO::new(args.chip, args.line)?
+    };
+    unsafe { PORT.set(gpio).expect("BUG"); }
 
     ::std::env::set_var("RUST_LOG", "actix_server=info,actix_web=info");
     env_logger::init();
@@ -114,5 +112,7 @@ async fn main() -> std::io::Result<()> {
     //.bind_uds("/tmp/gpio-toggle.socket")?
     .bind("0.0.0.0:2000")?
     .run()
-    .await
+    .await?;
+
+    Ok(())
 }
