@@ -1,0 +1,3 @@
+#!/bin/sh
+# Cross compiling cargo that targets Raspberry Pi
+exec docker run -it --rm -u "$(id -u):$(id -g)" --name rust-raspberry-build -v "${SOURCE_DIR:-"$PWD"}":/home/cross/project ragnaroek/rust-raspberry:1.40.0 "$@"
