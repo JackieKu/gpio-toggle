@@ -67,6 +67,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     } else {
         server.bind(args.listen)?
     }
+    .workers(1)
     .run()
     .await?;
 
