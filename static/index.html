@@ -38,12 +38,23 @@ body {
     border-radius: 50%;
 }
 
+#button:active {
+    transform: scale(0.98);
+}
+
 #button.activated {
     background-color: greenyellow;
 }
 
 #button.working {
-    border-width: 20px;
+    animation: blink 2s ease-in-out infinite;
+}
+
+@keyframes blink {
+    50% {
+        opacity: 0.5;
+        transform: scale(0.94);
+    }
 }
 </style>
 </head>
