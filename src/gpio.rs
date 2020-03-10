@@ -24,15 +24,15 @@ impl GPIO {
         self.handle.get_value().unwrap() != 0
     }
 
-    pub fn set(&mut self, on: bool) {
+    pub fn set(&self, on: bool) {
         self.handle.set_value(on as u8).unwrap();
     }
 }
 
 static mut PORT: OnceCell<GPIO> = OnceCell::new();
 
-pub fn unsafe_port() -> &'static mut GPIO {
-    unsafe { PORT.get_mut().unwrap() }
+pub fn unsafe_port() -> &'static GPIO {
+    unsafe { PORT.get().unwrap() }
 }
 
 pub fn init_port(args: &crate::Cli) -> Result<(), gpio_cdev::errors::Error> {
