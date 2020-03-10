@@ -1,6 +1,6 @@
 use gpio_cdev;
 
-use once_cell::sync::OnceCell;
+use once_cell::unsync::OnceCell;
 
 static CONSUMER: &str = "gpio-toggle-web";
 
