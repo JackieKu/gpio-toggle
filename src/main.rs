@@ -18,7 +18,7 @@ use mock_io::*;
 
 #[derive(Debug, StructOpt)]
 pub struct Cli {
-    /// The gpiochip device (e.g. /dev/gpiochip0)
+    /// The gpiochip device (e.g. /dev/gpiochip0 or CHIP_NAME:NN)
     #[cfg(not(mock))]
     chip: String,
     /// The offset of the GPIO line for the provided chip
