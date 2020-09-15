@@ -4,7 +4,7 @@ use once_cell::unsync::OnceCell;
 
 static CONSUMER: &str = "gpio-toggle-web";
 
-fn open_chip<S: AsRef<str>>(chip_path_or_name: S) -> Result<gpio_cdev::Chip, gpio_cdev::errors::Error> {
+fn open_chip(chip_path_or_name: impl AsRef<str>) -> Result<gpio_cdev::Chip, gpio_cdev::errors::Error> {
     let name = chip_path_or_name.as_ref();
     if !name.starts_with("/dev/") {
         for chip_ in gpio_cdev::chips()? {
@@ -23,7 +23,7 @@ pub struct GPIO {
     handle: gpio_cdev::LineHandle,
 }
 impl GPIO {
-    fn new<S: AsRef<str>>(chip: S, line: u32) -> Result<(GPIO, gpio_cdev::Chip), gpio_cdev::errors::Error>  {
+    fn new(chip: impl AsRef<str>, line: u32) -> Result<(GPIO, gpio_cdev::Chip), gpio_cdev::errors::Error>  {
         let mut chip = open_chip(chip)?;
         let line = chip.get_line(line)?;
         let old_value = line.request(gpio_cdev::LineRequestFlags::INPUT, 0, CONSUMER)?
